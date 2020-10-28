@@ -144,9 +144,52 @@ void fire()
   heatMap(HeatColors_p, true);
 }
 
+void ash( CRGB* ledarray, uint16_t numleds, CRGBPalette16& palette)
+{
+    static CRGB currentColor = CRGB::Red;
+    static CRGB lastColor = CRGB::Red;
+    static CRGB targetColor = CRGB::Red;
+    
+    static uint8_t hue = 0;
+    static uint8_t step = 0;
+
+    static uint16_t lastTimeCheck = 0;
+    static uint8_t mode = 0;
+
+    uint16_t timeStamp = millis();
+    uint16_t deltaTime = timeStamp - lastTimeCheck;
+
+    if (mode == 0) {
+      fill_solid(leds, NUM_LEDS, currentColor);
+
+      if (deltaTime > (cooling * 500)) {
+        Serial.println("Switching to mode 1 (blend)");
+        mode = 1;
+        lastTimeCheck = millis();
+      }  
+      return;    
+    }
+       
+    currentColor = blend(lastColor, targetColor, 255/8*step++);
+    if (step > 8)
+    {
+        step = 0;
+        lastColor = targetColor;
+        hsv2rgb_rainbow(CHSV(hue++, 255, 255), targetColor);
+    }
+    fill_solid(leds, NUM_LEDS, currentColor);
+
+    if (deltaTime > (sparking * 500)) {
+        Serial.println("Switching to mode 0 (solid color)");
+        mode = 0;
+        lastTimeCheck = millis();
+   }   
+   FastLED.delay(3000/speed);
+}
+
 void water()
 {
-  heatMap(IceColors_p, false);
+  ash(leds, NUM_LEDS, currentPalette);
 }
 
 // Pride2015 by Mark Kriegsman: https://gist.github.com/kriegsman/964de772d64c502760e5
